@@ -1,0 +1,123 @@
+from aiogram.filters import Command
+from aiogram import Router, F, types , Bot
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup , State
+from datetime import datetime
+
+from src.keyboards.inline.panel import admin_keyboard , cancel_keyboard , remove_admin_keyboard
+from src.logger import get_logger
+from src.database.models.admins import Admin
+from src.database.models.users import User 
+from src.config import settings
+
+bot = Bot(token=settings.BOT_TOKEN)
+log = get_logger()
+router = Router()
+
+@router.message(Command("panel"))
+async def admin_handler(msg: types.Message):
+    try:
+        if not await Admin.is_admin(user_id=msg.from_user.id):
+            await msg.reply("You are not an admin.")
+            return
+        await msg.answer(f"Welcome to admin panel {msg.from_user.first_name}\n\n--------------Admin panel--------------",
+                         reply_markup=await admin_keyboard()
+                         )
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+        
+@router.callback_query(F.data == "close")
+async def close_handler(call: types.CallbackQuery):
+    try:      
+        await call.message.edit_text(f"Admin panel closed by {call.from_user.first_name}")
+        await call.answer()
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+   
+class AdminStates(StatesGroup):
+    wait_for_admin_username_or_id = State()
+
+
+@router.callback_query(F.data == "add_admin")
+async def add_admin_handler(call: types.CallbackQuery, state: FSMContext):
+    try:
+        await call.message.edit_text(
+            "Please enter the username or user ID of the admin you want to add:",
+            reply_markup=await cancel_keyboard()
+        )
+        await call.answer()
+        await state.set_state(AdminStates.wait_for_admin_username_or_id)
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+
+
+@router.callback_query(F.data == "cancel")
+async def cancel_handler(call: types.CallbackQuery, state: FSMContext):
+    try:
+        await call.message.edit_text(
+            "Process canceled\n\n--------------Admin panel--------------",
+            reply_markup=await admin_keyboard()
+        )
+        await call.answer()
+        await state.clear()
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+
+
+@router.message(AdminStates.wait_for_admin_username_or_id)
+async def process_admin_input(msg: types.Message, state: FSMContext):
+    try:
+        text = msg.text.strip().lstrip("@")
+        if text.isdigit():
+            user = await User.get_user(user_id=int(text))
+        else:
+            user = await User.get_user(username=text.lower())
+
+        if not user:
+            await msg.answer("❌ No user found with that username or ID.")
+            return
+
+        success = await Admin.add_admin(
+            user_id=user["user_id"],
+            username=user.get("username"),
+            promoted_by=msg.from_user.username or msg.from_user.id
+        )
+
+        if success:
+            uname = f"@{user.get('username')}" if user.get("username") else "No Username"
+            await msg.answer(
+                f"✅ Admin added successfully\n"
+                f"👤 Username: {uname}\n"
+                f"🆔 User ID: {user['user_id']}\n"
+                f"🕒 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            await bot.send_message(user["user_id"], f"You have been promoted to admin by {msg.from_user.first_name}.")
+        else:
+            await msg.answer("⚠️ User is already an admin or an error occurred.")
+
+        await state.clear()
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+
+
+@router.callback_query(F.data == "remove_admin")
+async def remove_admin_handler(call: types.CallbackQuery):
+    try:
+        await call.message.edit_text(
+            "Please select the admin you want to remove:",
+            reply_markup=await remove_admin_keyboard()
+        )
+        await call.answer()
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+        
+@router.callback_query(F.data == "back_to_admin_panel")
+async def cancel_remove_admin_handler(call: types.CallbackQuery):
+    try:
+        await call.message.edit_text(
+            "Process canceled\n\n--------------Admin panel--------------",
+            reply_markup=await admin_keyboard()
+        )
+        await call.answer()
+    except Exception as e:
+        log.error(f"We got an error: {e}")

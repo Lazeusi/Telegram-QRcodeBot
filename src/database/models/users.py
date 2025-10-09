@@ -10,13 +10,15 @@ class User:
 
     collection = db.users
     
+
     @classmethod
     async def add_user(cls , user_id , username : str = None):
         try:
-            us = username.lower()
+            if username:
+                username = username.lower()
             await cls.collection.insert_one({                                  
                                     "user_id" : user_id,
-                                    "username" : us , # username
+                                    "username" : username , # username
                                     "joined_at" : datetime.now().strftime("%Y-%m-%d %H:%M:%S") ,
             })
         except Exception as e:
@@ -25,11 +27,13 @@ class User:
     @classmethod
     async def get_user(cls , user_id : int = None, username : str = None):
         try:
-            us = username.lower()
+            
+                
             if user_id:
                 return await cls.collection.find_one({"user_id" : user_id})
             if username:
-                return await cls.collection.find_one({"username" : us })
+                username = username.lower()
+                return await cls.collection.find_one({"username" : username })
         except Exception as e:
             log.error(f"Error getting user: {e}")
 
