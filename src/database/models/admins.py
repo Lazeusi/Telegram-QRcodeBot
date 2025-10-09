@@ -31,7 +31,7 @@ class Admin:
                 "promoted_by": promoted_by
             })
 
-            log.info(f"Admin added successfully: {username or user_id}")
+            log.info(f"Admin added successfully: {username or user_id} by {promoted_by}")
             return True
 
         except Exception as e:
@@ -40,11 +40,12 @@ class Admin:
 
             
     @classmethod
-    async def get_admins(cls):
+    async def get_admin(cls , user_id : int):
         try:
-            return await cls.collection.find()
+            info_admin = await cls.collection.find_one({"user_id": user_id})
+            return info_admin
         except Exception as e:
-            log.error(f"Error getting admins: {e}")
+            log.error(f"Error getting admin: {e}")
        
     @classmethod     
     async def is_admin(cls, user_id: int):
@@ -61,3 +62,10 @@ class Admin:
         except Exception as e:
             log.error(f"Error getting all admins: {e}")
     
+    @classmethod
+    async def remove_admin(cls, admin_id: int):
+        try:
+            return await cls.collection.delete_one({"user_id": admin_id})
+            
+        except Exception as e:
+            log.error(f"Error removing admin: {e}")
