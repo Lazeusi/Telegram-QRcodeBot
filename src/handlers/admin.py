@@ -50,6 +50,7 @@ async def add_admin_handler(call: types.CallbackQuery, state: FSMContext):
             reply_markup=await cancel_keyboard()
         )
         await call.answer()
+        await state.update_data(prompt_message_id = call.message.message_id)
         await state.set_state(AdminStates.wait_for_admin_username_or_id)
     except Exception as e:
         log.error(f"We got an error: {e}")
@@ -71,6 +72,9 @@ async def cancel_handler(call: types.CallbackQuery, state: FSMContext):
 @router.message(AdminStates.wait_for_admin_username_or_id)
 async def process_admin_input(msg: types.Message, state: FSMContext):
     try:
+        data = await state.get_data()
+        prompt_message_id = data.get("prompt_message_id")
+        await bot.delete_message(msg.from_user.id, prompt_message_id)
         text = msg.text.strip().lstrip("@")
         if text.isdigit():
             user = await User.get_user(user_id=int(text))
@@ -97,7 +101,7 @@ async def process_admin_input(msg: types.Message, state: FSMContext):
             )
             await bot.send_message(user["user_id"], f"You have been promoted to admin by {msg.from_user.first_name}.")
         else:
-            await msg.answer("⚠️ User is already an admin or an error occurred.")
+            await msg.answer("⚠️ User is already an admin or an error occurred." , reply_markup= await back_to_admin_panel_keyboard())
 
         await state.clear()
     except Exception as e:
