@@ -14,7 +14,8 @@ class Database :
         
         # collections
         self.users = self.db["users"]
-        self.admins = self.db["admins"] 
+        self.admins = self.db["admins"]
+        self.channels = self.db["channels"]
         
         
     async def connect(self):
