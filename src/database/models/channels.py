@@ -10,7 +10,7 @@ class Channel:
     @classmethod
     async def add_channel(cls , chat_id : int , title : str = None):
         try:
-            await cls.collection.insert_one({"channel_id" : chat_id , "title" : title , "Added at" : datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+            await cls.collection.insert_one({"channel_id" : chat_id , "title" : title , "added_at" : datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
         except Exception as e:
             log.error(f"Error adding channel: {e}")
             

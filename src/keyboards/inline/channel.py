@@ -77,3 +77,61 @@ async def accept_remove_channel_keyboard():
     except Exception as e:
         log.error(f"We got an error: {e}")
         
+async def list_channels_keyboard():
+    try:
+        channel = await Channel.get_all()
+        builder = InlineKeyboardBuilder()
+        if not channel:
+            builder.button(text="❌ No channels found", callback_data="none")
+            builder.button(text="🔙 Back" , callback_data="force_join")
+            return builder.as_markup()
+        
+        for channel in channel:
+            builder.button(text=f"{channel['title']}", callback_data=f"info_channel_{channel['channel_id']}")
+        builder.button(text="🔙 Back" , callback_data="force_join")
+        builder.adjust(1)
+        return builder.as_markup()
+        
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+        
+async def back_to_channel_list():
+    try:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 Back", callback_data="channel_list")],
+            ]
+        )
+        
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+
+        
+async def list_channels_join_keyboard(channels: list):
+    try:
+        buttons = []
+
+        for channel in channels:
+            # Support for int or dict
+            if isinstance(channel, dict):
+                channel_id = str(channel.get('channel_id'))
+                title = channel.get('title', f"Channel {channel_id}")
+            else:
+                channel_id = str(channel)
+                title = f"Channel {channel_id}"
+
+            if channel_id.startswith("-100"):
+                url = f"https://t.me/c/{channel_id[4:]}"
+            else:
+                url = f"https://t.me/{channel_id}"
+
+            buttons.append([InlineKeyboardButton(text=title, url=url)])
+
+        buttons.append([InlineKeyboardButton(text="✅ Joined", callback_data="check_join")])
+        return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+        return InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="⚠️ Error loading channels", callback_data="back_to_start")]]
+        )

@@ -10,7 +10,8 @@ from src.logger import get_logger
 from src.keyboards.inline.panel import back_to_admin_panel_keyboard  
 from src.keyboards.inline.channel import( channel_keyboard , back_to_force_join_panel_keyboard ,
                                         confirm_add_force_channel_keyboard  , ch_remove_keyboard ,
-                                        accept_remove_channel_keyboard ,)
+                                        accept_remove_channel_keyboard , list_channels_keyboard ,
+                                        back_to_channel_list )
 from src.config import settings
 
 
@@ -183,3 +184,32 @@ async def remove_channel(call: types.CallbackQuery, state: FSMContext):
         await call.answer()
     except Exception as e:
         log.error(f"Error removing channel: {e}")
+        
+        
+@router.callback_query(F.data == "channel_list")
+async def channel_list(call: types.CallbackQuery):
+    try:
+        await call.message.edit_text(
+            "Channels list:",
+            reply_markup=await list_channels_keyboard()
+        )
+        await call.answer()
+    except Exception as e:
+        log.error(f"Error listing channels: {e}")
+        
+@router.callback_query(F.data.startswith("info_channel_"))
+async def info_channel(call: types.CallbackQuery):
+    try:
+        chat_id = int(call.data.split("_")[2])
+        info = await Channel.get_channel(chat_id)
+        await call.message.edit_text(
+            f"Channel/group information \n\n"
+            f"📛 Title: {info['title']}\n"
+            f"🆔 Chat ID: <code>{info['channel_id']}</code>\n"
+            f"🕝 Aded at: {info['added_at']}",
+            parse_mode="HTML" ,
+            reply_markup= await back_to_channel_list()
+        )
+        await call.answer()
+    except Exception as e:
+        log.error(f"Error listing channels: {e}")
