@@ -43,4 +43,13 @@ class User:
             return await cls.collection.find()
         except Exception as e:
             log.error(f"Error getting all users: {e}")
-    
+            
+    @classmethod
+    async def update_user(cls , user_id : int , username : str = None):
+        try:
+            if username:
+                username = username.lower()
+                return cls.collection.update_one({"user_id" : user_id} , {"$set" : {"username" : username}})
+        except Exception as e:
+            log.error(f"Error updating user: {e}")
+            

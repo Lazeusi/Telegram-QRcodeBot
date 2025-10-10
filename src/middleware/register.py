@@ -24,6 +24,8 @@ class RegisterMiddleware(BaseMiddleware):
             existing_user = await User.get_user(user_id=user_id)
             if not existing_user:
                 await User.add_user(user_id=user_id, username=username)
+            else:
+                await User.update_user(user_id=user_id , username=username)
                 
                 log.info(f"New user added, Username: @{username.lower()}, User ID: {user_id}, Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             
