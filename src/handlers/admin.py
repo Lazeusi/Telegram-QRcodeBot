@@ -4,7 +4,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup , State
 from datetime import datetime
 
-from src.keyboards.inline.panel import admin_keyboard , cancel_keyboard , remove_admin_keyboard , accept_remove_admin_keyboard , list_admin_keyboard , back_to_admin_list_keyboard
+from src.keyboards.inline.panel import (admin_keyboard , cancel_keyboard ,
+                                        remove_admin_keyboard , accept_remove_admin_keyboard , 
+                                        list_admin_keyboard , back_to_admin_list_keyboard ,
+                                        back_to_admin_panel_keyboard)
 from src.logger import get_logger
 from src.database.models.admins import Admin
 from src.database.models.users import User 
@@ -185,5 +188,48 @@ async def back_to_admin_list_handler(call: types.CallbackQuery):
             reply_markup=await list_admin_keyboard()
         )
         await call.answer()
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+        
+        
+class FindUserState(StatesGroup):
+    wait_for_user_username_or_id = State()
+@router.callback_query(F.data == "find_user")
+async def find_user_handler(call: types.CallbackQuery, state: FSMContext):
+    try:
+        await call.message.edit_text(
+            "Please enter the username or user ID of the user you want to find:",
+            reply_markup=await cancel_keyboard()
+        )
+        await call.answer()
+        await state.update_data(prompt_message_id = call.message.message_id)
+        await state.set_state(FindUserState.wait_for_user_username_or_id)
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+        
+@router.message(FindUserState.wait_for_user_username_or_id)
+async def find_user(message: types.Message, state: FSMContext):
+    try:
+        try:
+            data = await state.get_data()
+            prompt_message_id = data.get("prompt_message_id")
+            await bot.delete_message(message.from_user.id, prompt_message_id)
+        except Exception as e:
+            log.warning(f"Failed to delete prompt message: {e}")
+
+        if message.text.startswith("@"):
+            user = await User.get_user(username=message.text[1:])
+        else:
+            user = await User.get_user(user_id=int(message.text))
+        if user:
+            await message.answer(
+                f"👤 Username: @{user['username']}\n"
+                f"🆔 User ID: {user['user_id']}\n"
+                f"🕒 Join at: {user['joined_at']}\n" ,
+                reply_markup= await back_to_admin_panel_keyboard()
+            )
+        else:
+            await message.answer("User not found." ,
+                                 reply_markup= await back_to_admin_panel_keyboard())
     except Exception as e:
         log.error(f"We got an error: {e}")
