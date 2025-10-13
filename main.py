@@ -24,6 +24,10 @@ async def main():
     # handlers
     setup_handlers(dp)
     
+    commands = [
+        types.BotCommand(command="start" , description="ReStart and show menu")
+    ]
+    await bot.set_my_commands(commands)
     log.info("Bot is polling...")
     await dp.start_polling(bot)
 
