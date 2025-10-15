@@ -14,6 +14,7 @@ async def admin_keyboard():
                 [InlineKeyboardButton(text="Add admin", callback_data="add_admin") , InlineKeyboardButton(text="Remove admin", callback_data="remove_admin")],
                 [InlineKeyboardButton(text="Admin list", callback_data="admin_list")],
                 [InlineKeyboardButton(text="Find user", callback_data="find_user") , InlineKeyboardButton(text="Force join", callback_data="force_join")],
+                [InlineKeyboardButton(text="Send message to all users", callback_data="send_message")],
                 [InlineKeyboardButton(text="Close", callback_data="close")]
             ]
         )

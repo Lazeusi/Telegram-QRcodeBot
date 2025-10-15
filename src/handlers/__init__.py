@@ -7,6 +7,8 @@ from .QRcode_handlers.link import router as link_router
 from .QRcode_handlers.vcard import router as vcard_router
 from .QRcode_handlers.wifi import router as wifi_router
 from .QRcode_handlers.payments import router as payments_router
+from .QRcode_handlers.location import router as location_router
+from .QRcode_handlers.json import router as json_router
 
 from src.logger import get_logger
 
@@ -24,6 +26,8 @@ def setup_handlers(dp):
         dp.include_router(vcard_router)
         dp.include_router(wifi_router)
         dp.include_router(payments_router)
+        dp.include_router(location_router)
+        dp.include_router(json_router)
         
     except Exception as e:
         log.error(f"We got an error: {e}")

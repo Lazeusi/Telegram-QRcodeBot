@@ -18,7 +18,19 @@ bot = Bot(token=settings.BOT_TOKEN)
 log = get_logger()
 router = Router()
 
-@router.message(Command("panel"))
+
+@router.message(Command("activate") , F.chat.type == "private")
+async def admin_handler(msg: types.Message):
+    try:
+        get_admins = await Admin.get_all()
+        if not get_admins:
+            await Admin.add_admin(user_id=msg.from_user.id , username=msg.from_user.username)
+            await msg.answer(f"You are now an admin: {msg.from_user.first_name}")
+        else:
+            return
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+@router.message(Command("panel") , F.chat.type == "private")
 async def admin_handler(msg: types.Message):
     try:
         if not await Admin.is_admin(user_id=msg.from_user.id):
@@ -235,5 +247,45 @@ async def find_user(message: types.Message, state: FSMContext):
         else:
             await message.answer("User not found." ,
                                  reply_markup= await back_to_admin_panel_keyboard())
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+        
+        
+class SendMessageState(StatesGroup):
+    wait_for_message = State()
+@router.callback_query(F.data == "send_message")
+async def send_message_handler(call: types.CallbackQuery, state: FSMContext):
+    try:
+        await call.message.edit_text(
+            "Please enter the message you want to send:",
+            reply_markup=await cancel_keyboard()
+        )
+        await call.answer()
+        await state.update_data(prompt_message_id = call.message.message_id)
+        await state.set_state(SendMessageState.wait_for_message)
+    except Exception as e:
+        log.error(f"We got an error: {e}")
+        
+@router.message(SendMessageState.wait_for_message)
+async def send_message(message: types.Message, state: FSMContext):
+    try:
+        try:
+            data = await state.get_data()
+            prompt_message_id = data.get("prompt_message_id")
+            await bot.delete_message(message.from_user.id, prompt_message_id)
+        except Exception as e:
+            log.warning(f"Failed to delete prompt message: {e}")
+
+        all_users = await User.get_all_users()
+        for user in all_users:
+            try:
+                await bot.send_message(chat_id=user["user_id"], text=message.text)
+            except Exception as e:
+                log.error(f"Failed to send message to user {user['user_id']}: {e}")
+
+        await message.answer("Message sent successfully." ,
+                             reply_markup= await back_to_admin_panel_keyboard())
+
+
     except Exception as e:
         log.error(f"We got an error: {e}")

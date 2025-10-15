@@ -6,7 +6,7 @@ import qrcode
 
 from src.logger import get_logger
 from src.keyboards.inline.start import main_menu_keyboard
-from src.keyboards.inline.qrcode import payment_types_keyboard
+from src.keyboards.inline.qrcode import payment_types_keyboard , cancel_keyboard
 
 router = Router()
 log = get_logger()
@@ -25,6 +25,7 @@ async def choose_payment_type(callback: types.CallbackQuery, state: FSMContext):
         "Select the type of payment you want to create a QR for:",
         reply_markup=await payment_types_keyboard()
     )
+    await state.update_data(last_bot_message_id=callback.message.message_id)
     await state.set_state(PaymentQR.waiting_for_payment_type)
     
 @router.callback_query(F.data == "back")
@@ -37,7 +38,7 @@ async def cancel_qr_handler(call: types.CallbackQuery, state: FSMContext):
         
 @router.callback_query(F.data == "pay_crypto")
 async def get_crypto_address(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text("Enter your crypto address or URI (e.g., `bitcoin:address?amount=0.01`):")
+    await callback.message.edit_text("Enter your crypto address or URI (e.g., `bitcoin:address?amount=0.01`):" , reply_markup= await cancel_keyboard())
     await state.set_state(PaymentQR.waiting_for_crypto_info)    
 
 
@@ -45,7 +46,8 @@ async def get_crypto_address(callback: types.CallbackQuery, state: FSMContext):
 async def process_crypto_payment(message: types.Message, state: FSMContext , bot : Bot):
 
     try:
-    
+        data = await state.get_data()
+        await bot.delete_message(message.chat.id, data.get("last_bot_message_id"))
         qr_data = message.text.strip()
 
         qr = qrcode.make(qr_data)
@@ -64,12 +66,15 @@ async def process_crypto_payment(message: types.Message, state: FSMContext , bot
 
 @router.callback_query(F.data == "pay_link")
 async def get_payment_link(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text("Send your payment link (for example, https://zarinp.al/example):")
+    await callback.message.edit_text("Send your payment link (for example, https://zarinp.al/example):" ,reply_markup= await cancel_keyboard())
+    await state.update_data(last_bot_message_id=callback.message.message_id)
     await state.set_state(PaymentQR.waiting_for_link_info)
     
 @router.message(PaymentQR.waiting_for_link_info)
-async def process_payment_link(message: types.Message, state: FSMContext):
+async def process_payment_link(message: types.Message, state: FSMContext , bot : Bot):
     try:
+        data = await state.get_data()
+        await bot.delete_message(message.chat.id, data.get("last_bot_message_id"))
         qr_data = message.text.strip()
 
         qr = qrcode.make(qr_data)
@@ -90,13 +95,16 @@ async def process_payment_link(message: types.Message, state: FSMContext):
     
 @router.callback_query(F.data == "pay_bank")
 async def get_bank_payment(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text("Please enter your card number or payment info:")
+    await callback.message.edit_text("Please enter your card number or payment info:" ,reply_markup= await cancel_keyboard())
     await state.set_state(PaymentQR.waiting_for_bank_info)
+    await state.update_data(last_bot_message_id=callback.message.message_id)
+
 
 @router.message(PaymentQR.waiting_for_bank_info)
-async def process_bank_payment(message: types.Message, state: FSMContext):
+async def process_bank_payment(message: types.Message, state: FSMContext , bot : Bot):
     try:
-
+        data = await state.get_data()
+        await bot.delete_message(message.chat.id, data.get("last_bot_message_id"))
         qr_data = message.text.strip()
 
         qr = qrcode.make(qr_data)

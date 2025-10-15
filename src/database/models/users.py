@@ -40,7 +40,8 @@ class User:
     @classmethod
     async def get_all_users(cls):
         try:
-            return await cls.collection.find()
+            cursor = cls.collection.find({})
+            return [doc async for doc in cursor]
         except Exception as e:
             log.error(f"Error getting all users: {e}")
             

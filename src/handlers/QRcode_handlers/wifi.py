@@ -4,6 +4,8 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import BufferedInputFile
 from io import BytesIO
 import qrcode
+
+from src.keyboards.inline.qrcode import cancel_keyboard
 from src.logger import get_logger
 
 
@@ -19,7 +21,7 @@ class QRWiFiState(StatesGroup):
 
 @router.callback_query(F.data == "qr_wifi")
 async def wifi_qr_start(call: types.CallbackQuery, state: FSMContext):
-    sent = await call.message.edit_text("📶 Please enter your Wi-Fi network name (SSID):")
+    sent = await call.message.edit_text("📶 Please enter your Wi-Fi network name (SSID):" , reply_markup= await cancel_keyboard())
     await call.answer()
     await state.update_data(last_bot_message_id=sent.message_id)
     await state.set_state(QRWiFiState.waiting_for_ssid)
@@ -35,7 +37,7 @@ async def wifi_get_ssid(message: types.Message, state: FSMContext, bot: Bot):
         pass
 
     ssid = message.text.strip()
-    sent = await message.answer("🔑 Please enter your Wi-Fi password (or type `none` if open network):")
+    sent = await message.answer("🔑 Please enter your Wi-Fi password (or type `none` if open network):" , reply_markup= await cancel_keyboard())
 
     await state.update_data(ssid=ssid, last_bot_message_id=sent.message_id)
     await state.set_state(QRWiFiState.waiting_for_password)
@@ -54,7 +56,8 @@ async def wifi_get_password(message: types.Message, state: FSMContext, bot: Bot)
         "⚙️ Choose your encryption type:\n\n"
         "`WPA` - Most common\n"
         "`WEP` - Old\n"
-        "`nopass` - Open network"
+        "`nopass` - Open network" ,
+        reply_markup= await cancel_keyboard()
     )
 
     await state.update_data(password=password, last_bot_message_id=sent.message_id)

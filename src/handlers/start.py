@@ -8,7 +8,7 @@ log = get_logger()
 
 router = Router()
 
-@router.message(CommandStart())
+@router.message(CommandStart() , F.chat.type == "private")
 async def start_handler(msg: types.Message):
     try:
         
