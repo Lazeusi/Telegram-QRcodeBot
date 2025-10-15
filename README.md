@@ -96,7 +96,7 @@ pip install -r requirements.txt
 ```
 ---
 
-## HOW Run?
+## 😶‍🌫️ HOW Run?
 ```bash
 python main.py
 ```
